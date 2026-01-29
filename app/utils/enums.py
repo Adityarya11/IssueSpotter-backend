@@ -1,0 +1,39 @@
+from enum import Enum
+
+class IssueStatus(str, Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    SHADOW_BANNED = "SHADOW_BANNED"
+    ESCALATED = "ESCALATED"
+    UNDER_REVIEW = "UNDER_REVIEW"
+
+class IssueCategory(str, Enum):
+    ROAD = "ROAD"
+    WATER = "WATER"
+    ELECTRICITY = "ELECTRICITY"
+    SANITATION = "SANITATION"
+    HEALTH = "HEALTH"
+    EDUCATION = "EDUCATION"
+    CRIME = "CRIME"
+    ENVIRONMENT = "ENVIRONMENT"
+    OTHER = "OTHER"
+
+class ModerationStage(str, Enum):
+    RULES = "RULES"
+    PREPROCESSING = "PREPROCESSING"
+    AI_CLASSIFIER = "AI_CLASSIFIER"
+    DECISION_ENGINE = "DECISION_ENGINE"
+    HITL = "HITL"
+
+class ModerationDecision(str, Enum):
+    APPROVE = "APPROVE"
+    REJECT = "REJECT"
+    ESCALATE = "ESCALATE"
+    SHADOW_BAN = "SHADOW_BAN"
+    DEPRIORITIZE = "DEPRIORITIZE"
+
+class UserRole(str, Enum):
+    USER = "USER"
+    MODERATOR = "MODERATOR"
+    ADMIN = "ADMIN"
