@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config.settings import settings
 from app.db.session import init_db
+from app.api.v1 import issues
 
 app = FastAPI(
     title=settings.APP_NAME,
-    debug=settings.DEBUG
+    debug=settings.DEBUG,
+    version="1.0.0"
 )
 
 app.add_middleware(
@@ -30,3 +32,5 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
+
+app.include_router(issues.router, prefix="/api/v1")
