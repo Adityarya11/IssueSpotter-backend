@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Float, Integer
+from sqlalchemy import Column, String, Boolean, DateTime, Float, Integer, Uuid
 from sqlalchemy.sql import func
 import uuid
 from app.db.session import Base
@@ -7,7 +7,9 @@ from app.utils.enums import UserRole
 class User(Base):
     __tablename__ = "users"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    # Use generic Uuid type (works in SQLite and Postgres)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    
     email = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)

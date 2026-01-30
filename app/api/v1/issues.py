@@ -9,12 +9,17 @@ from app.services.issue_service import IssueService
 
 router = APIRouter(prefix="/issues", tags=["issues"])
 
+# Must match the ID in main.py
+DEMO_USER_ID = uuid.UUID("12345678-1234-5678-1234-567812345678")
+
 @router.post("/", response_model=IssueResponse, status_code=status.HTTP_201_CREATED)
 async def create_issue(
     issue: IssueCreate,
     db: Session = Depends(get_db)
 ):
-    mock_user_id = str(uuid.uuid4())
+    # ✅ FIX 1: Use the constant ID that actually exists in the DB
+    # ✅ FIX 2: Pass a UUID object, NOT a string (removes str())
+    mock_user_id = DEMO_USER_ID 
     
     db_issue = IssueService.create_issue(db=db, issue_data=issue, user_id=mock_user_id)
     

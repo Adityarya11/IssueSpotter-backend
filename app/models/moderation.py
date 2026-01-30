@@ -1,15 +1,14 @@
-from sqlalchemy import Column, String, Text, DateTime, Float, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, Float, ForeignKey, Uuid, JSON
 from sqlalchemy.sql import func
 import uuid
 from app.db.session import Base
 from app.utils.enums import ModerationStage, ModerationDecision
-from app.models.types import JSONEncodedType
 
 class ModerationLog(Base):
     __tablename__ = "moderation_logs"
     
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    issue_id = Column(String(36), ForeignKey("issues.id"), nullable=False)
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    issue_id = Column(Uuid(as_uuid=True), ForeignKey("issues.id"), nullable=False)
     
     stage = Column(String, nullable=False)
     decision = Column(String, nullable=False)
@@ -17,8 +16,9 @@ class ModerationLog(Base):
     score = Column(Float, default=0.0)
     confidence = Column(Float, default=0.0)
     
-    flags = Column(JSONEncodedType, default=list)
-    extra_data = Column(JSONEncodedType, default=dict)
+    # Use generic JSON
+    flags = Column(JSON, default=list)
+    metadata_ = Column("metadata", JSON, default=dict)
     
     reason = Column(Text)
     
