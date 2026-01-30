@@ -1,33 +1,31 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-import uuid
+from uuid import UUID, uuid4
 
 from app.db.session import get_db
 from app.schemas.issue import IssueCreate, IssueResponse
 from app.services.issue_service import IssueService
+from app.workers.celery_app import celery_app
 
 router = APIRouter(prefix="/issues", tags=["issues"])
-
-# Must match the ID in main.py
-DEMO_USER_ID = uuid.UUID("12345678-1234-5678-1234-567812345678")
 
 @router.post("/", response_model=IssueResponse, status_code=status.HTTP_201_CREATED)
 async def create_issue(
     issue: IssueCreate,
     db: Session = Depends(get_db)
 ):
-    # ✅ FIX 1: Use the constant ID that actually exists in the DB
-    # ✅ FIX 2: Pass a UUID object, NOT a string (removes str())
-    mock_user_id = DEMO_USER_ID 
+    mock_user_id = uuid4()
     
     db_issue = IssueService.create_issue(db=db, issue_data=issue, user_id=mock_user_id)
+    
+    celery_app.send_task("moderate_issue", args=[str(db_issue.id)])
     
     return db_issue
 
 @router.get("/{issue_id}", response_model=IssueResponse)
 async def get_issue(
-    issue_id: str,
+    issue_id: UUID,
     db: Session = Depends(get_db)
 ):
     issue = IssueService.get_issue_by_id(db=db, issue_id=issue_id)

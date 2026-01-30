@@ -3,17 +3,17 @@ from typing import Optional, List
 from app.models.issue import Issue
 from app.schemas.issue import IssueCreate
 from app.utils.enums import IssueStatus
-import json
+import uuid
 
 class IssueService:
     
     @staticmethod
-    def create_issue(db: Session, issue_data: IssueCreate, user_id: str) -> Issue:
+    def create_issue(db: Session, issue_data: IssueCreate, user_id: uuid.UUID) -> Issue:
         db_issue = Issue(
             user_id=user_id,
             title=issue_data.title,
             description=issue_data.description,
-            images=json.dumps(issue_data.images),
+            images=issue_data.images,
             category=issue_data.category.value,
             country=issue_data.country,
             state=issue_data.state,
@@ -32,7 +32,7 @@ class IssueService:
         return db_issue
     
     @staticmethod
-    def get_issue_by_id(db: Session, issue_id: str) -> Optional[Issue]:
+    def get_issue_by_id(db: Session, issue_id: uuid.UUID) -> Optional[Issue]:
         return db.query(Issue).filter(Issue.id == issue_id).first()
     
     @staticmethod
@@ -65,7 +65,7 @@ class IssueService:
     @staticmethod
     def update_issue_status(
         db: Session,
-        issue_id: str,
+        issue_id: uuid.UUID,
         status: IssueStatus,
         moderation_score: Optional[float] = None
     ) -> Optional[Issue]:

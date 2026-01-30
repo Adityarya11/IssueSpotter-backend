@@ -1,52 +1,49 @@
-from pydantic import BaseModel, ConfigDict, field_validator, Field
-from typing import List, Optional, Any, Dict
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+from typing import Optional, List, Any, Dict
 from datetime import datetime
 from uuid import UUID
 import json
 
 from app.utils.enums import IssueStatus, IssueCategory
 
-# Shared properties
 class IssueBase(BaseModel):
-    title: str
-    description: str
+    title: str = Field(..., min_length=10, max_length=200)
+    description: str = Field(..., min_length=20)
     category: IssueCategory = IssueCategory.OTHER
     
-    country: str
-    state: str
-    city: str
-    district: Optional[str] = None
-    locality: Optional[str] = None
+    country: str = Field(..., min_length=2, max_length=100)
+    state: str = Field(..., min_length=2, max_length=100)
+    city: str = Field(..., min_length=2, max_length=100)
+    district: Optional[str] = Field(None, max_length=100)
+    locality: Optional[str] = Field(None, max_length=100)
     
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
     
-    images: List[str] = []
+    images: List[str] = Field(default_factory=list)
 
-# Properties to receive on item creation
+    @field_validator('title', 'description')
+    @classmethod
+    def strip_whitespace(cls, v: str) -> str:
+        return v.strip()
+
 class IssueCreate(IssueBase):
     pass
 
-# Properties to return to client
 class IssueResponse(IssueBase):
     id: UUID
     user_id: UUID
     status: IssueStatus
     moderation_score: float
-    
     upvotes: int
     downvotes: int
     comment_count: int
-    
-    # ✅ FIX: Map the JSON 'metadata' field to the Python 'metadata_' attribute
-    metadata: Dict[str, Any] = Field(default_factory=dict, validation_alias="metadata_")
-    
+    metadata: Dict[str, Any] = Field(default_factory=dict, alias="metadata_")
     created_at: datetime
-    updated_at: Optional[datetime] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-    # Validator to handle SQLite JSON string format
+    updated_at: Optional[datetime]
+    
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+    
     @field_validator("images", mode="before")
     @classmethod
     def parse_images(cls, v):
