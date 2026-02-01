@@ -344,6 +344,31 @@ issuespotter-backend/
 
 ---
 
+#### Architecture (Phase 4)
+
+```
+Post → Redis → [AI Microservice]
+                    │
+                    ├── TextEmbedder (384-dim)
+                    ├── ImageEmbedder (512-dim CLIP)
+                    ├── VideoAnalyzer (frame extraction)
+                    ├── NSFW Detection (NudeNet)
+                    └── AIClassifier
+                           │
+                    ┌──────┼──────┐
+                    │      │      │
+                 GREEN  YELLOW   RED
+                   │      │       │
+              Auto-OK  Human   Auto-Ban
+                      Review
+                        │
+                    Dashboard
+                        │
+                     Webhook → Main Backend
+```
+
+---
+
 <!--
 ## 15. Vector Database Integration (Phase 3)
 

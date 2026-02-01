@@ -6,11 +6,14 @@ from app.models.user import User
 from app.utils.enums import UserRole
 import uuid
 
-# ✅ MISSING PART 1: Import the router
+# API Routers
 from app.api.v1.issues import router as issues_router
+from app.api.v1.dashboard import router as dashboard_router
 
 app = FastAPI(
     title=settings.APP_NAME,
+    description="IssueSpotter AI Guardian - Content Moderation Microservice",
+    version="0.4.0",
     debug=settings.DEBUG
 )
 
@@ -22,10 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ MISSING PART 2: Include the router in the app
-# Since your router already has prefix="/issues", this will create paths like:
-# /api/v1/issues/
+# Include API routers
 app.include_router(issues_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
 
 # Define a constant UUID so both Main and Issues API use the same one
 DEMO_USER_ID = uuid.UUID("12345678-1234-5678-1234-567812345678")
