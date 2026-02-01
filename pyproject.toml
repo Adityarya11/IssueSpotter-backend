@@ -34,4 +34,27 @@ dependencies = [
 dev = [
     "httpx>=0.28.1",
     "pytest>=9.0.2",
+    "pytest-cov>=6.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --tb=short"
+markers = [
+    "requires_qdrant: mark test as requiring Qdrant to be running",
+    "slow: mark test as slow running",
+]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["app/__pycache__/*", "tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
 ]
