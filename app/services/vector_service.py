@@ -1,5 +1,5 @@
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue
+from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue, QueryRequest
 from typing import List, Dict, Optional
 import logging
 import uuid
@@ -147,10 +147,10 @@ class VectorService:
                     ]
                 )
             
-            # Search
-            results = client.search(
+            # Search using query_points (new Qdrant API)
+            results = client.query_points(
                 collection_name=cls._collection_name,
-                query_vector=embedding,
+                query=embedding,
                 limit=limit,
                 score_threshold=score_threshold,
                 query_filter=query_filter
@@ -158,7 +158,7 @@ class VectorService:
             
             # Format results
             similar_issues = []
-            for hit in results:
+            for hit in results.points:
                 similar_issues.append({
                     "issue_id": hit.payload.get("issue_id"),
                     "similarity_score": hit.score,
