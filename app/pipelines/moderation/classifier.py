@@ -2,6 +2,7 @@ from typing import Dict, List
 import logging
 from app.ai.image_analyser import ImageAnalyzer
 from app.ai.text_embedder import TextEmbedder
+from app.services.vector_service import VectorService
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,53 @@ class AIClassifier:
             
             # Store embedding as list for JSON serialization
             results["text_embedding"] = embedding.tolist()
+            
+            # Check for duplicates
+            try:
+                duplicate = VectorService.detect_duplicates(
+                    embedding=embedding.tolist(),
+                    similarity_threshold=0.90,
+                    time_window_hours=24
+                )
+                
+                if duplicate:
+                    results["decision"] = "ESCALATE"
+                    results["confidence"] = duplicate["similarity_score"]
+                    results["reason"] = f"Potential duplicate of issue {duplicate['issue_id']} (similarity: {duplicate['similarity_score']:.2%})"
+                    results["duplicate_detected"] = True
+                    results["duplicate_issue_id"] = duplicate["issue_id"]
+                    logger.info(f"Duplicate detected: {duplicate['issue_id']}")
+            except Exception as e:
+                logger.error(f"Duplicate detection failed: {e}")
+                results["duplicate_detected"] = False
+            
+            # Get similar past decisions for learning (RAG)
+            try:
+                similar_decisions = VectorService.get_similar_decisions(
+                    embedding=embedding.tolist(),
+                    limit=3
+                )
+                
+                if similar_decisions:
+                    # Use past decisions to inform current decision
+                    human_approvals = sum(1 for d in similar_decisions if d.get("human_decision") == "APPROVE")
+                    human_rejections = sum(1 for d in similar_decisions if d.get("human_decision") == "REJECT")
+                    
+                    results["similar_cases"] = {
+                        "count": len(similar_decisions),
+                        "human_approvals": human_approvals,
+                        "human_rejections": human_rejections,
+                        "cases": similar_decisions
+                    }
+                    
+                    # Adjust confidence based on historical patterns
+                    if human_rejections > human_approvals and results["decision"] == "APPROVE":
+                        logger.info("Similar cases were rejected by humans - escalating for review")
+                        results["decision"] = "ESCALATE"
+                        results["reason"] = f"Similar past cases were rejected ({human_rejections}/{len(similar_decisions)})"
+                    
+            except Exception as e:
+                logger.error(f"Similar decision lookup failed: {e}")
             
         except Exception as e:
             logger.error(f"Text analysis failed: {e}")

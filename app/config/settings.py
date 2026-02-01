@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str
     
+    # Qdrant Vector Database
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    QDRANT_COLLECTION_NAME: str = "issue_embeddings"
+    
     # JWT
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
