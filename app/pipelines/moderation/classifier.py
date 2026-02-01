@@ -1,20 +1,95 @@
-from typing import Dict
+from typing import Dict, List
+import logging
+from app.ai.image_analyser import ImageAnalyzer
+from app.ai.text_embedder import TextEmbedder
+
+logger = logging.getLogger(__name__)
 
 class AIClassifier:
-
-    @staticmethod
-    def classify(title: str, description: str, images: list) -> Dict:
+    
+    # Singleton instances (loaded once, reused)
+    _image_analyzer = None
+    _text_embedder = None
+    
+    @classmethod
+    def _get_image_analyzer(cls):
+        if cls._image_analyzer is None:
+            cls._image_analyzer = ImageAnalyzer()
+        return cls._image_analyzer
+    
+    @classmethod
+    def _get_text_embedder(cls):
+        if cls._text_embedder is None:
+            cls._text_embedder = TextEmbedder()
+        return cls._text_embedder
+    
+    @classmethod
+    def classify(cls, title: str, description: str, images: List[str]) -> Dict:
         """
-        PlaceHolder for future AI integr.
-        Returning dummy scores fot now.
+        Run AI classification on post.
+        
+        Checks:
+        1. NSFW content in images
+        2. Text-image relevance (coming soon)
+        3. Text toxicity (placeholder for now)
         """
-
-        return {
+        
+        results = {
             "stage": "AI_CLASSIFIER",
-            "toxicity": 0.1,
-            "misinformation": 0.05,
-            "civic_relevance": 0.85,
-            "image_match_score": 0.9 if images else 0.0,
-            "confidence": 0.6,
-            "decision": "APPROVE"
+            "image_analysis": {},
+            "text_analysis": {},
+            "decision": "APPROVE",
+            "confidence": 0.0
         }
+        
+        # 1. Image Analysis
+        if images and len(images) > 0:
+            try:
+                image_analyzer = cls._get_image_analyzer()
+                image_results = image_analyzer.analyse_batch(images)
+                
+                results["image_analysis"] = image_results
+                
+                # Decision logic for images
+                if image_results.get("has_nsfw", False):
+                    nsfw_score = image_results.get("max_nsfw_score", 0.0)
+                    
+                    if nsfw_score > 0.8:
+                        results["decision"] = "REJECT"
+                        results["confidence"] = nsfw_score
+                        results["reason"] = "High confidence NSFW content detected"
+                    elif nsfw_score > 0.6:
+                        results["decision"] = "ESCALATE"
+                        results["confidence"] = nsfw_score
+                        results["reason"] = "Possible NSFW content - needs review"
+                
+            except Exception as e:
+                logger.error(f"Image analysis failed: {e}")
+                results["image_analysis"] = {"error": str(e)}
+        
+        # 2. Text Analysis (Embeddings)
+        try:
+            text_embedder = cls._get_text_embedder()
+            combined_text = f"{title} {description}"
+            
+            # Generate embedding (we'll store this for future similarity search)
+            embedding = text_embedder.embed_text(combined_text)
+            
+            results["text_analysis"] = {
+                "embedding_generated": True,
+                "embedding_dim": len(embedding),
+                "text_length": len(combined_text)
+            }
+            
+            # Store embedding as list for JSON serialization
+            results["text_embedding"] = embedding.tolist()
+            
+        except Exception as e:
+            logger.error(f"Text analysis failed: {e}")
+            results["text_analysis"] = {"error": str(e)}
+        
+        # 3. Set default confidence if not set by image analysis
+        if results["confidence"] == 0.0:
+            results["confidence"] = 0.7  # Default confidence for approved posts
+        
+        return results

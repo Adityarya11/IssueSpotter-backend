@@ -13,3 +13,17 @@ python-multipart
 python-jose[cryptography] 
 passlib[bcrypt] 
 python-dotenv
+
+# AI 
+torch
+torchvision
+transformers
+sentence-transformers
+pillow
+opencv-python
+numpy
+requests
+nudenet
+
+# Qdrant
+qdrant-client
