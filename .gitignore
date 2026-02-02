@@ -57,3 +57,4 @@ dummy-issues.json
 # Documentation
 
 images
+.pytest_cache

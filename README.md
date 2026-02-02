@@ -1,552 +1,143 @@
-# IssueSpotter – AI‑Powered Civic Issue Discovery & Moderation Platform
+# 🛡️ IssueSpotter AI Guardian
 
-## 1. Project Overview
+> **Lightweight AI-powered content moderation microservice** for images, videos, and text
 
-IssueSpotter is a large‑scale civic engagement platform designed to allow citizens to report, discover, discuss, and escalate real‑world issues ranging from hyper‑local infrastructure problems (potholes, garbage, water leakage) to city‑wide, state‑level, or national concerns (health outbreaks, governance failures, environmental risks).
+## Overview
 
-The platform intentionally blends interaction paradigms from **community discussion platforms (Reddit‑like)** and **professional issue visibility networks (LinkedIn‑like)**, while grounding every post in **geographic and administrative reality**. The core differentiator of IssueSpotter is **signal over noise**: ensuring that genuine, actionable issues surface while spam, duplicates, misinformation, rage‑bait, and low‑quality content are systematically filtered out using AI‑driven pipelines.
+IssueSpotter AI Guardian is a specialized microservice that analyzes user-generated content (posts, images, videos) and provides intelligent moderation decisions using state-of-the-art AI models.
 
-This repository represents the **AI/ML, moderation, ranking, and intelligence layer** of the IssueSpotter system, designed to integrate with an Android application and backend services built independently.
+**Core Mission:** Act as a guardian layer between user submissions and the main backend, automatically filtering spam, NSFW content, duplicates, and toxic posts while letting genuine civic issues through.
 
----
+## Key Features
 
-## 2. Problem Statement
+### Three-Tier Decision System
 
-Modern civic platforms fail in three major ways:
+- **GREEN** (score < 0.3): Auto-approve safe content
+- **YELLOW** (score 0.3-0.8): Escalate to human moderator
+- **RED** (score > 0.8): Auto-reject violating content
 
-1. **Noise Dominance** – Genuine issues get buried under reposts, emotionally charged but low‑value content, memes, or irrelevant discussions.
-2. **Lack of Geographic Grounding** – Many platforms lack structured location hierarchies, making it difficult to understand scope, severity, and jurisdiction.
-3. **No Trust Gradient** – Posts from credible users and first‑hand reporters are treated the same as spam accounts or opportunistic engagement farmers.
+### AI Models
 
-IssueSpotter addresses these gaps by combining:
+- **Text Embeddings**: `all-MiniLM-L6-v2` (384-dimensional)
+- **Image Embeddings**: `CLIP ViT-B/32` (512-dimensional)
+- **NSFW Detection**: `NudeNet`
+- **Video Analysis**: Frame-by-frame (1 frame/2 seconds)
 
-- Hierarchical geo‑structuring
-- AI‑based content understanding
-- Trust, credibility, and engagement modeling
-- Automated issue deduplication and escalation
+### Capabilities
 
----
+- NSFW image detection
+- Video frame analysis
+- Duplicate detection via vector similarity
+- Learning from past moderator decisions (RAG)
+- Webhook notifications with retry logic
+- Human-in-the-loop (HITL) dashboard
 
-## 3. Core Design Philosophy
+## Quick Start
 
-The platform is designed around the following principles:
-
-- **Geography First** – Every issue is tied to a well‑defined administrative hierarchy.
-- **AI as Infrastructure, Not Feature** – Machine learning operates continuously in the background to clean, rank, and contextualize content.
-- **Human‑Centric Escalation** – AI assists moderators and authorities rather than replacing accountability.
-- **Explainability & Control** – Every automated decision can be inspected, overridden, or tuned.
-- **Scalability from Day One** – Designed to handle millions of posts across regions.
-
----
-
-## 4. Geographic & Administrative Hierarchy Model
-
-All issues are indexed using a strict multi‑level hierarchy:
-
-```
-Country
- └── State
-     └── City
-         └── District
-             └── Locality
-```
-
-### Purpose of Hierarchy
-
-- Enables **localized feeds** (what matters near me)
-- Enables **jurisdiction mapping** (who is responsible)
-- Enables **escalation logic** (local → district → city → state)
-- Enables **duplicate detection** within geographic bounds
-
-Each issue is stored with:
-
-- Primary location (mandatory)
-- Optional secondary affected regions
-- Geo‑coordinates (when available)
-
----
-
-## 5. High‑Level System Architecture
-
-### 5.1 Client Layer (Android App)
-
-- Issue creation & media upload
-- Feed browsing (location‑aware)
-- Voting, commenting, sharing
-- User profile & reputation view
-
-### 5.2 Backend Services (Non‑AI)
-
-- Authentication & authorization
-- User management
-- Post storage & retrieval
-- Media storage (S3 or equivalent)
-- API gateways
-
-### 5.3 AI & Intelligence Layer (This Project)
-
-Responsible for:
-
-- Content understanding
-- Moderation
-- Ranking
-- Deduplication
-- Escalation scoring
-- Abuse prevention
-
----
-
-## 6. AI/ML Responsibilities (Detailed)
-
-### 6.1 Content Ingestion Pipeline
-
-When a user submits an issue:
-
-1. Text, images, and metadata are extracted
-2. Text is cleaned and normalized
-3. Media is pre‑processed for downstream analysis
-
-### 6.2 Issue Classification
-
-Each post is automatically classified into:
-
-- Issue category (infrastructure, health, safety, governance, environment, etc.)
-- Severity level (low, medium, high, critical)
-- Temporal nature (one‑time, recurring, ongoing)
-
-This allows structured filtering and prioritization.
-
-### 6.3 Duplicate & Near‑Duplicate Detection
-
-A core challenge is preventing repost storms.
-
-Approach:
-
-- Generate semantic embeddings for issue text
-- Compare embeddings within the same geographic boundary
-- Use cosine similarity + temporal proximity
-- Cluster near‑identical reports
-
-Outcome:
-
-- Users are redirected to existing issues
-- Engagement is consolidated
-- Authorities see a single amplified signal instead of noise
-
----
-
-## 7. AI‑Driven Moderation System
-
-### 7.1 Automated Content Filtering
-
-Each post is scored across multiple dimensions:
-
-- Spam likelihood
-- Hate or abuse probability
-- Misinformation risk
-- Sensationalism / rage‑bait patterns
-
-Posts may be:
-
-- Published immediately
-- Soft‑limited (reduced reach)
-- Sent for human review
-- Rejected with explanation
-
-### 7.2 Context‑Aware Moderation
-
-Moderation decisions consider:
-
-- Local language usage
-- Regional slang
-- Crisis context (e.g., disasters)
-
-This avoids over‑moderation during emergencies.
-
----
-
-## 8. Ranking & Feed Intelligence
-
-### 8.1 Issue Ranking Factors
-
-Feeds are not chronological by default.
-
-Ranking is computed using:
-
-- Severity score
-- Number of unique reporters
-- Engagement quality (not raw likes)
-- User credibility
-- Freshness decay
-- Geographic proximity
-
-### 8.2 Trust & Credibility Modeling
-
-Each user accumulates a **credibility score** based on:
-
-- Historical accuracy of reports
-- Community validation
-- Moderator confirmations
-- Account age & behavior patterns
-
-High‑credibility users amplify issue visibility faster.
-
----
-
-## 9. Escalation & Authority Routing
-
-Issues automatically escalate when:
-
-- Engagement crosses thresholds
-- Severity remains unresolved over time
-- Multiple localities report the same issue
-
-Escalation triggers:
-
-- District‑level visibility
-- City or state dashboards
-- External authority notifications (future scope)
-
----
-
-## 10. Technology Stack
-
-### 10.1 Core Languages
-
-- Python (AI & ML pipelines)
-- Kotlin / Java (Android client – external)
-
-### 10.2 Machine Learning & NLP
-
-- Transformer‑based language models
-- Sentence embeddings for similarity search
-- Topic modeling & clustering
-
-### 10.3 Vector Storage
-
-- **Qdrant** for semantic similarity and clustering
-- 384-dimensional embeddings using `all-miniLM-L6-V2` model
-- Cosine similarity for finding related content
-- Real-time duplicate detection
-- Retrieval-Augmented Generation (RAG) for learning from past decisions
-
-### 10.4 Orchestration
-
-- LangChain for pipeline composition
-
-### 10.5 Infrastructure
-
-- Azure cloud deployment
-- Containerized services (Docker)
-- REST / gRPC APIs
-
-### 10.6 Storage
-
-- Relational DB for metadata
-- Object storage for media
-
----
-
-## 11. Scalability & Performance Considerations
-
-- Horizontal scaling of embedding services
-- Async ingestion pipelines
-- Caching of hot feeds
-- Batched similarity searches
-
-The system is designed to scale from a single city to national‑level traffic.
-
----
-
-## 12. Security & Abuse Prevention
-
-- Rate limiting per user & region
-- Bot behavior detection
-- Shadow banning for malicious actors
-- Audit logs for moderation actions
-
----
-
-## 13. Future Roadmap
-
-- Multimodal issue understanding (image + text fusion)
-- Authority dashboards
-- Public transparency reports
-- Predictive issue outbreak detection
-- Cross‑region issue correlation
-
----
-
-## 14. Conclusion
-
-IssueSpotter is not just a posting platform; it is a **civic intelligence system**. By combining structured geography, AI‑driven moderation, and trust‑aware ranking, it aims to convert scattered citizen complaints into actionable, prioritized, and verifiable civic signals.
-
-This repository defines the foundation for that intelligence layer and is built to evolve alongside real‑world governance complexity.
-
-```arduino
-issuespotter-backend/
-│
-├── app/
-│   ├── main.py                # FastAPI entry
-│   ├── config/
-│   │   ├── settings.py        # env vars
-│   │   └── logging.py
-│   │
-│   ├── api/
-│   │   ├── v1/
-│   │   │   ├── auth.py
-│   │   │   ├── issues.py
-│   │   │   ├── feed.py
-│   │   │   └── moderation.py
-│   │
-│   ├── models/
-│   │   ├── user.py
-│   │   ├── issue.py
-│   │   ├── report.py
-│   │   └── moderation.py
-│   │
-│   ├── services/
-│   │   ├── issue_service.py
-│   │   ├── feed_service.py
-│   │   ├── moderation_service.py
-│   │
-│   ├── pipelines/
-│   │   ├── moderation/
-│   │   │   ├── __init__.py
-│   │   │   ├── rules.py
-│   │   │   ├── preprocessor.py
-│   │   │   ├── classifier.py      # placeholder
-│   │   │   ├── decision.py
-│   │   │   └── hitl.py
-│   │
-│   ├── workers/
-│   │   ├── celery_app.py
-│   │   ├── moderation_worker.py
-│   │
-│   ├── db/
-│   │   ├── session.py
-│   │   └── migrations/
-│   │
-│   └── utils/
-│       ├── geo.py
-│       ├── text.py
-│       └── enums.py
-│
-├── docker/
-│   ├── Dockerfile.api
-│   ├── Dockerfile.worker
-│   └── docker-compose.yml
-│
-├── tests/
-│
-└── README.md
-```
-
----
-
-#### Architecture (Phase 4)
-
-```
-Post → Redis → [AI Microservice]
-                    │
-                    ├── TextEmbedder (384-dim)
-                    ├── ImageEmbedder (512-dim CLIP)
-                    ├── VideoAnalyzer (frame extraction)
-                    ├── NSFW Detection (NudeNet)
-                    └── AIClassifier
-                           │
-                    ┌──────┼──────┐
-                    │      │      │
-                 GREEN  YELLOW   RED
-                   │      │       │
-              Auto-OK  Human   Auto-Ban
-                      Review
-                        │
-                    Dashboard
-                        │
-                     Webhook → Main Backend
-```
-
----
-
-<!--
-## 15. Vector Database Integration (Phase 3)
-
-### 15.1 Overview
-
-The AI microservice now includes **VectorService**, a critical component that gives the system "long-term memory" through Qdrant vector database integration.
-
-### 15.2 What VectorService Does
-
-1. **Duplicate Detection**
-   - Automatically detects when users report the same issue multiple times
-   - Uses semantic similarity (90%+ threshold) to identify duplicates
-   - Prevents spam and consolidates engagement
-
-2. **Similar Issue Search**
-   - Finds semantically similar posts based on content
-   - Returns results ranked by cosine similarity
-   - Supports time-based filtering (e.g., last 24 hours)
-
-3. **Learning from Past Decisions (RAG)**
-   - Queries similar past moderation decisions
-   - Uses human moderator feedback to inform AI decisions
-   - Continuously improves without model retraining
-
-### 15.3 Architecture
-
-```
-Post Submission
-    ↓
-Text Embedder (all-miniLM-L6-V2)
-    ↓
-384-dimensional vector
-    ↓
-VectorService.upsert_embedding()
-    ↓
-Qdrant Collection
-    ↓
-[Future queries use similarity search]
-```
-
-### 15.4 Setup & Configuration
-
-#### Docker Compose Setup
-
-Qdrant is already configured in `docker/docker-compose.yml`:
+### Installation
 
 ```bash
-cd docker
-docker compose up -d qdrant
+uv sync
+
+cp .env.example .env
+
+uv run uvicorn app.main:app --reload --port 8000
+
+uv run python scripts/demo_guardian.py
 ```
 
-This starts Qdrant on:
-
-- REST API: `http://localhost:6333`
-- gRPC API: `http://localhost:6334`
-
-#### Environment Variables
-
-Add to your `.env` file:
+### Configuration
 
 ```env
+ENVIRONMENT=development
 QDRANT_HOST=localhost
 QDRANT_PORT=6333
-QDRANT_COLLECTION_NAME=issue_embeddings
+AI_THRESHOLD_GREEN=0.3
+AI_THRESHOLD_RED=0.8
+MAIN_BACKEND_WEBHOOK_URL=http://your-backend/webhook
 ```
 
-### 15.5 VectorService API
+## API Endpoints
 
-#### Initialize Collection
+### Classify Content
 
-```python
-from app.services.vector_service import VectorService
-
-# Creates collection if it doesn't exist
-VectorService.initialize_collection()
+```http
+POST /api/v1/moderation/classify
+{
+  "issue_id": "post-123",
+  "title": "Pothole on Main St",
+  "description": "Large pothole...",
+  "image_paths": ["https://..."],
+  "video_paths": []
+}
 ```
 
-#### Store Embedding
+### HITL Dashboard
 
-```python
-VectorService.upsert_embedding(
-    issue_id="issue-123",
-    embedding=[0.123, 0.456, ...],  # 384-dimensional vector
-    metadata={
-        "title": "Pothole on Main Street",
-        "description": "Large pothole causing issues",
-        "ai_decision": "APPROVE",
-        "moderation_score": 0.85
-    }
-)
+```http
+GET  /api/v1/dashboard/pending
+POST /api/v1/dashboard/review
+GET  /api/v1/dashboard/stats
 ```
 
-#### Find Similar Issues
+### Health Check
 
-```python
-similar = VectorService.find_similar(
-    embedding=query_embedding,
-    limit=5,
-    score_threshold=0.8,
-    time_window_hours=24  # Optional: only search recent issues
-)
-
-# Returns:
-# [
-#   {
-#     "issue_id": "issue-456",
-#     "similarity_score": 0.95,
-#     "title": "Big hole on Main Street",
-#     "ai_decision": "APPROVE",
-#     ...
-#   }
-# ]
+```http
+GET /health
 ```
 
-#### Detect Duplicates
-
-```python
-duplicate = VectorService.detect_duplicates(
-    embedding=query_embedding,
-    similarity_threshold=0.90,
-    time_window_hours=24
-)
-
-if duplicate:
-    print(f"Duplicate of {duplicate['issue_id']}")
-```
-
-#### Get Similar Decisions (RAG)
-
-```python
-past_decisions = VectorService.get_similar_decisions(
-    embedding=query_embedding,
-    limit=3
-)
-
-# Use to inform AI decision based on past human feedback
-```
-
-### 15.6 Integration in Moderation Pipeline
-
-The VectorService is integrated into the moderation workflow:
-
-1. **Text Processing**: `AIClassifier` generates embeddings for title + description
-2. **Duplicate Check**: Checks Qdrant for very similar recent posts
-3. **RAG Lookup**: Finds similar past cases to inform decision
-4. **Storage**: After moderation, embedding is stored in Qdrant
-5. **Feedback Loop**: When moderators review, their decision updates the payload
-
-### 15.7 Performance Characteristics
-
-- **Query Latency**: ~10-50ms for similarity search
-- **Scalability**: Handles millions of vectors efficiently
-- **Accuracy**: Cosine similarity achieves 99%+ for identical content
-- **Storage**: ~1.5KB per embedding (384 floats)
-
-### 15.8 Testing
-
-Run the basic VectorService test:
+## Testing
 
 ```bash
-python test_vector_basic.py
+uv run pytest
+
+uv run pytest --cov=app
+
+uv run pytest tests/unit/
 ```
 
-Expected output:
+## Project Structure
 
 ```
-✓ Collection initialized successfully
-✓ Stored embedding for: Pothole on Main Street
-Found 3 similar issues:
-1. [0.998] Pothole on Main Street
+app/
+├── ai/                  # AI models
+│   ├── text_embedder.py
+│   ├── image_embedder.py
+│   ├── image_analyser.py
+│   └── video_analyzer.py
+├── api/v1/              # REST API
+│   ├── moderation.py
+│   └── dashboard.py
+├── pipelines/           # Decision pipeline
+│   └── moderation/
+│       └── classifier.py
+├── services/            # Core services
+│   ├── vector_service.py
+│   ├── webhook_service.py
+│   └── moderation_service.py
+└── config/
+    └── settings.py
 ```
 
-### 15.9 Future Enhancements
+## Tech Stack
 
-- [ ] Multi-modal embeddings (text + image)
-- [ ] Geographic clustering (find issues in same area)
-- [ ] Temporal patterns (recurring issues)
-- [ ] Authority dashboards showing duplicate clusters
-- [ ] Cross-lingual similarity (multiple languages)
+- **FastAPI** - Async web framework
+- **Transformers** - HuggingFace models
+- **Qdrant** - Vector database
+- **NudeNet** - NSFW detection
+- **OpenCV** - Video processing
 
---- -->
+## Performance
+
+- Text analysis: ~50ms
+- Image analysis: ~200ms
+- Video (60s): ~2s
+- Vector search: ~30ms
+
+## Docker
+
+```bash
+docker-compose up -d
+```
+
+---

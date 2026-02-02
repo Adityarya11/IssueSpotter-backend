@@ -1,25 +1,7 @@
 from enum import Enum
 
-class IssueStatus(str, Enum):
-    PENDING = "PENDING"
-    APPROVED = "APPROVED"
-    REJECTED = "REJECTED"
-    SHADOW_BANNED = "SHADOW_BANNED"
-    ESCALATED = "ESCALATED"
-    UNDER_REVIEW = "UNDER_REVIEW"
-
-class IssueCategory(str, Enum):
-    ROAD = "ROAD"
-    WATER = "WATER"
-    ELECTRICITY = "ELECTRICITY"
-    SANITATION = "SANITATION"
-    HEALTH = "HEALTH"
-    EDUCATION = "EDUCATION"
-    CRIME = "CRIME"
-    ENVIRONMENT = "ENVIRONMENT"
-    OTHER = "OTHER"
-
 class ModerationStage(str, Enum):
+    """Stages in the moderation pipeline"""
     RULES = "RULES"
     PREPROCESSING = "PREPROCESSING"
     AI_CLASSIFIER = "AI_CLASSIFIER"
@@ -27,13 +9,14 @@ class ModerationStage(str, Enum):
     HITL = "HITL"
 
 class ModerationDecision(str, Enum):
+    """Final moderation decisions"""
     APPROVE = "APPROVE"
     REJECT = "REJECT"
     ESCALATE = "ESCALATE"
     SHADOW_BAN = "SHADOW_BAN"
-    DEPRIORITIZE = "DEPRIORITIZE"
 
-class UserRole(str, Enum):
-    USER = "USER"
-    MODERATOR = "MODERATOR"
-    ADMIN = "ADMIN"
+class ContentDecision(str, Enum):
+    """Three-tier AI decision system"""
+    GREEN = "GREEN"      # Auto-approve
+    YELLOW = "YELLOW"    # Human review needed
+    RED = "RED"          # Auto-reject
