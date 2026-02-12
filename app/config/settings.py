@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
     QDRANT_COLLECTION_NAME: str = "issue_embeddings"
-    QDRANT_API_URL: Optional[str] = None  # For cloud Qdrant
-    QDRANT_API_KEY: Optional[str] = None  # For cloud Qdrant
+    QDRANT_API_URL: Optional[str] = None  # For Qdrant Cloud - set in .env
+    QDRANT_API_KEY: Optional[str] = None  # For Qdrant Cloud - set in .env
     
     # JWT
     SECRET_KEY: str

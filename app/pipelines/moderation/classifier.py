@@ -100,6 +100,27 @@ def _score_to_decision(score: float) -> str:
         return Decision.GREEN.value
 
 
+@dataclass
+class ModerationRequest:
+    """Request object for content moderation."""
+    issue_id: str
+    title: str
+    description: str
+    image_paths: Optional[List[str]] = None
+    video_paths: Optional[List[str]] = None
+    
+    
+@dataclass
+class ModerationResult:
+    """Result of moderation analysis."""
+    issue_id: str
+    decision: str  # GREEN, YELLOW, RED
+    confidence: float
+    reason: str
+    scores: Optional[Dict] = None
+    classification_result: Optional[ClassificationResult] = None
+
+
 class AIClassifier:
     """
     Main AI classifier for the IssueSpotter Guardian.
@@ -290,6 +311,40 @@ class AIClassifier:
             return []
     
     @classmethod
+    async def classify(cls, request: ModerationRequest) -> ModerationResult:
+        """
+        Classify a moderation request and return simplified result.
+        
+        Args:
+            request: ModerationRequest with issue details
+            
+        Returns:
+            Moderation result with GREEN/YELLOW/RED decision
+        """
+        # Run full classification
+        result = cls.classify_full(
+            post_id=request.issue_id,
+            title=request.title,
+            description=request.description,
+            images=request.image_paths,
+            videos=request.video_paths
+        )
+        
+        # Return simplified result
+        return ModerationResult(
+            issue_id=request.issue_id,
+            decision=result.final_decision,
+            confidence=result.final_score,
+            reason=result.reason,
+            scores={
+                "text_score": result.text_analysis.score if result.text_analysis else 0.0,
+                "image_scores": [a.score for a in result.image_analyses],
+                "final_score": result.final_score
+            },
+            classification_result=result
+        )
+    
+    @classmethod
     def classify_full(
         cls,
         post_id: str,
@@ -402,7 +457,7 @@ class AIClassifier:
         return result
     
     @classmethod
-    def classify(cls, title: str, description: str, images: List[str]) -> Dict:
+    def classify_legacy(cls, title: str, description: str, images: List[str]) -> Dict:
         """
         Legacy classify method for backward compatibility.
         

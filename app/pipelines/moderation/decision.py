@@ -1,10 +1,14 @@
 from typing import Dict
-from app.utils.enums import ModerationDecision, IssueStatus
+from app.utils.enums import ModerationDecision, ContentDecision
 
 class DecisionEngine:
+    """
+    Decision engine for AI Guardian - Maps moderation scores to GREEN/YELLOW/RED decisions.
+    """
     
-    REJECT_THRESHOLD = 0.8
-    ESCALATE_THRESHOLD = 0.5
+    RED_THRESHOLD = 0.8    # Above = auto-reject
+    YELLOW_THRESHOLD = 0.3  # Between = needs review
+    # Below YELLOW_THRESHOLD = auto-approve (GREEN)
     
     @staticmethod
     def make_decision(
@@ -12,50 +16,58 @@ class DecisionEngine:
         preprocessing_result: Dict,
         ai_result: Dict
     ) -> Dict:
+        """
+        Make final moderation decision based on rules and AI analysis.
+        Returns GREEN/YELLOW/RED decision for AI Guardian.
+        """
         
+        # Immediate rejection if rules failed
         if rules_result["decision"] == "REJECT":
             return {
                 "stage": "DECISION_ENGINE",
                 "final_decision": ModerationDecision.REJECT.value,
-                "final_status": IssueStatus.REJECTED.value,
+                "content_decision": ContentDecision.RED.value,
                 "confidence": 1.0,
                 "reason": f"Failed rule checks: {', '.join(rules_result['flags'])}",
                 "moderation_score": rules_result["score"]
             }
         
+        # Escalate if rules suggest review needed
         if rules_result["decision"] == "ESCALATE":
             return {
                 "stage": "DECISION_ENGINE",
                 "final_decision": ModerationDecision.ESCALATE.value,
-                "final_status": IssueStatus.UNDER_REVIEW.value,
+                "content_decision": ContentDecision.YELLOW.value,
                 "confidence": 0.7,
                 "reason": "Requires human review",
                 "moderation_score": rules_result["score"]
             }
         
+        # Calculate combined score from AI analysis
         combined_score = (
             rules_result["score"] * 0.5 +
             ai_result.get("toxicity", 0) * 0.3 +
             (1 - ai_result.get("civic_relevance", 0.5)) * 0.2
         )
         
-        if combined_score > DecisionEngine.REJECT_THRESHOLD:
+        # Map to three-tier decision system (GREEN/YELLOW/RED)
+        if combined_score > DecisionEngine.RED_THRESHOLD:
             final_decision = ModerationDecision.REJECT.value
-            final_status = IssueStatus.REJECTED.value
-            reason = "High risk score"
-        elif combined_score > DecisionEngine.ESCALATE_THRESHOLD:
+            content_decision = ContentDecision.RED.value
+            reason = "High risk score - auto-reject"
+        elif combined_score > DecisionEngine.YELLOW_THRESHOLD:
             final_decision = ModerationDecision.ESCALATE.value
-            final_status = IssueStatus.UNDER_REVIEW.value
+            content_decision = ContentDecision.YELLOW.value
             reason = "Medium risk - needs review"
         else:
             final_decision = ModerationDecision.APPROVE.value
-            final_status = IssueStatus.APPROVED.value
-            reason = "Passed all checks"
+            content_decision = ContentDecision.GREEN.value
+            reason = "Passed all checks - auto-approve"
         
         return {
             "stage": "DECISION_ENGINE",
             "final_decision": final_decision,
-            "final_status": final_status,
+            "content_decision": content_decision,
             "confidence": ai_result.get("confidence", 0.5),
             "reason": reason,
             "moderation_score": combined_score

@@ -1,5 +1,13 @@
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct, Filter, FieldCondition, MatchValue, QueryRequest
+from qdrant_client.models import (
+    Distance, 
+    VectorParams, 
+    PointStruct, 
+    Filter, 
+    FieldCondition, 
+    MatchValue,
+    PayloadSchemaType
+)
 from typing import List, Dict, Optional
 import logging
 import uuid
@@ -33,11 +41,20 @@ class VectorService:
         """Get or create Qdrant client (singleton pattern)"""
         if cls._client is None:
             try:
-                cls._client = QdrantClient(
-                    host=settings.QDRANT_HOST,
-                    port=settings.QDRANT_PORT
-                )
-                logger.info(f"Connected to Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
+                # Use cloud configuration if available
+                if settings.QDRANT_API_URL and settings.QDRANT_API_KEY:
+                    cls._client = QdrantClient(
+                        url=settings.QDRANT_API_URL,
+                        api_key=settings.QDRANT_API_KEY
+                    )
+                    logger.info(f"Connected to Qdrant Cloud at {settings.QDRANT_API_URL}")
+                else:
+                    # Fallback to local Qdrant
+                    cls._client = QdrantClient(
+                        host=settings.QDRANT_HOST,
+                        port=settings.QDRANT_PORT
+                    )
+                    logger.info(f"Connected to Qdrant at {settings.QDRANT_HOST}:{settings.QDRANT_PORT}")
             except Exception as e:
                 logger.error(f"Failed to connect to Qdrant: {e}")
                 raise
@@ -67,8 +84,27 @@ class VectorService:
                     )
                 )
                 logger.info(f"Created Qdrant collection: {collection_name} (dim={dimension})")
+                
+                # Create payload index for timestamp field (required for time-based filtering)
+                client.create_payload_index(
+                    collection_name=collection_name,
+                    field_name="timestamp",
+                    field_schema=PayloadSchemaType.FLOAT
+                )
+                logger.info(f"Created timestamp index for {collection_name}")
             else:
                 logger.info(f"Qdrant collection already exists: {collection_name}")
+                # Ensure timestamp index exists even for existing collections
+                try:
+                    client.create_payload_index(
+                        collection_name=collection_name,
+                        field_name="timestamp",
+                        field_schema=PayloadSchemaType.FLOAT
+                    )
+                    logger.info(f"Created timestamp index for existing {collection_name}")
+                except Exception:
+                    # Index might already exist, that's fine
+                    pass
                 
         except Exception as e:
             logger.error(f"Failed to initialize collection {collection_name}: {e}")
@@ -114,7 +150,7 @@ class VectorService:
                 vector=embedding,
                 payload={
                     "issue_id": issue_id,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.utcnow().timestamp(),  # Store as Unix timestamp (numeric)
                     **metadata
                 }
             )
@@ -189,21 +225,23 @@ class VectorService:
             query_filter = None
             if time_window_hours:
                 cutoff_time = datetime.utcnow() - timedelta(hours=time_window_hours)
+                # Convert to Unix timestamp (Qdrant expects numeric value)
+                cutoff_timestamp = cutoff_time.timestamp()
                 query_filter = Filter(
                     must=[
                         FieldCondition(
                             key="timestamp",
                             range={
-                                "gte": cutoff_time.isoformat()
+                                "gte": cutoff_timestamp
                             }
                         )
                     ]
                 )
             
-            # Search using query_points (new Qdrant API)
-            results = client.query_points(
+            # Search using search() method (stable Qdrant API)
+            results = client.search(
                 collection_name=collection_name,
-                query=embedding,
+                query_vector=embedding,
                 limit=limit,
                 score_threshold=score_threshold,
                 query_filter=query_filter
@@ -211,7 +249,7 @@ class VectorService:
             
             # Format results
             similar_items = []
-            for hit in results.points:
+            for hit in results:
                 similar_items.append({
                     "issue_id": hit.payload.get("issue_id"),
                     "similarity_score": hit.score,
@@ -380,7 +418,7 @@ class VectorService:
             updated_payload = {
                 **point.payload,
                 "human_decision": human_decision,
-                "human_reviewed_at": datetime.utcnow().isoformat(),
+                "human_reviewed_at": datetime.utcnow().timestamp(),  # Store as Unix timestamp
             }
             
             if moderator_notes:

@@ -1,14 +1,18 @@
-from sqlalchemy.orm import Session
-from app.models.moderation import ModerationLog
-from app.models.issue import Issue
-from app.utils.enums import IssueStatus
-from uuid import UUID
+from typing import Dict, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ModerationService:
+    """
+    Moderation service for AI Guardian.
+    
+    NOTE: This is a simplified version without database persistence.
+    For production, integrate with main backend via webhooks.
+    """
     
     @staticmethod
     def log_moderation(
-        db: Session,
         issue_id: str,
         stage: str,
         decision: str,
@@ -17,40 +21,37 @@ class ModerationService:
         flags: list,
         reason: str,
         metadata: dict
-    ) -> ModerationLog:
-        log = ModerationLog(
-            issue_id=UUID(issue_id),
-            stage=stage,
-            decision=decision,
-            score=score,
-            confidence=confidence,
-            flags=flags,
-            metadata_=metadata,
-            reason=reason
-        )
+    ) -> Dict:
+        """Log moderation decision (in-memory for now, send via webhook in production)."""
+        log_entry = {
+            "issue_id": issue_id,
+            "stage": stage,
+            "decision": decision,
+            "score": score,
+            "confidence": confidence,
+            "flags": flags,
+            "metadata": metadata,
+            "reason": reason
+        }
         
-        db.add(log)
-        db.commit()
-        db.refresh(log)
-        
-        return log
+        logger.info(f"Moderation logged for {issue_id}: {decision} (score: {score:.3f})")
+        return log_entry
     
     @staticmethod
-    def update_issue_after_moderation(
-        db: Session,
-        issue_id: UUID,
-        final_status: str,
-        moderation_score: float
-    ) -> Issue:
-        issue = db.query(Issue).filter(Issue.id == issue_id).first()
-        
-        if not issue:
-            return None
-        
-        issue.status = final_status
-        issue.moderation_score = moderation_score
-        
-        db.commit()
-        db.refresh(issue)
-        
-        return issue
+    def create_moderation_response(
+        issue_id: str,
+        final_decision: str,
+        content_decision: str,
+        moderation_score: float,
+        confidence: float,
+        reason: str
+    ) -> Dict:
+        """Create standardized moderation response for API."""
+        return {
+            "issue_id": issue_id,
+            "decision": final_decision,
+            "content_decision": content_decision,  # GREEN/YELLOW/RED
+            "score": moderation_score,
+            "confidence": confidence,
+            "reason": reason
+        }

@@ -1,12 +1,6 @@
 import io
-from json.encoder import ESCAPE_DCT
-from re import S
-from celery.result import ResultSet
 import requests
 from PIL import Image
-import torch
-from torch.compiler import reset
-from torchvision import transforms
 from nudenet import NudeDetector
 from typing import Dict, List, Optional
 import logging
